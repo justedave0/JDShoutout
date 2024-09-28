@@ -1,0 +1,153 @@
+<html>
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Teko:700&display=swap" rel="stylesheet">
+    <script>
+        var id;
+        var clipduration;
+
+        function load() {
+            var urlParams = new URLSearchParams(window.location.search);
+
+            id = urlParams.get('id');
+            clipduration = parseInt(urlParams.get('clipduration'), 10); 
+
+            var targetUser = urlParams.get('targetUser');
+            document.getElementById('targetUser').innerHTML = targetUser;  
+
+            var targetUserProfileImageUrl = urlParams.get('targetUserProfileImageUrl');    
+            document.getElementById('targetUserProfileImage').src = targetUserProfileImageUrl;
+         
+            var clipTitle = urlParams.get('clipTitle');    
+            document.getElementById('clipTitle').innerHTML = clipTitle;
+
+            document.getElementById('targetUser').classList.add("show");
+            document.getElementById('targetUserProfileImage').classList.add("show");
+            
+            setTimeout(showVideo, 2000);
+        }    
+
+        function showVideo() {
+            document.getElementById('targetUserProfileImage').classList.add("hide");
+
+            var video = document.getElementById('video');
+            video.classList.add("show"); 
+            document.getElementById('clipTitle').classList.add("show");
+            video.src = `https://clips.twitch.tv/embed?clip=${id}&parent=justedave.tv&autoplay=true&muted=false`;
+
+            setTimeout(cleanup, clipduration);
+        }
+
+        function cleanup() {
+            document.getElementById('targetUserProfileImage').classList.remove("hide");  
+            document.getElementById('video').classList.add("hide");  
+            document.getElementById('clipTitle').classList.add("hide");
+            
+            setTimeout(function() {
+                document.getElementById('targetUser').classList.add("hide");   
+                document.getElementById('targetUserProfileImage').classList.add("hide");   
+                
+            }, 2000);
+        }
+    </script>
+    <style>
+        body {
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        iframe {
+            background: transparent;
+            border: none;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 20px #2d9da9;
+            }
+            to {
+                text-shadow: 0 0 30px #34b3c1, 0 0 10px #4dbbc7;
+            }
+        }
+
+        h1, h3, iframe, img {
+            opacity: 0;
+        }
+
+        .show {
+            opacity: 1;
+            transition: opacity 1s ease-in;
+        }
+
+        .hide {
+            opacity: 0;
+            transition: opacity 1s ease-in;    
+        }
+
+        #targetUser {
+            width: 100%;
+            position: absolute; 
+            left: 50%;
+            color: #4db1bc; 
+            z-index: 9999;
+            transform: translate(-50%, 0%);
+            margin: 0;
+            font-family: 'Teko', sans-serif;
+            font-size: 10rem;
+            text-transform: uppercase;
+            animation: glow 2s ease-in-out infinite alternate;
+            text-align: center;
+            top: 0px;
+            font-size: 80px;
+        }
+
+        #videoContainer {
+            position: relative;
+            width: 1000px;
+            left: 50%;
+            transform: translate(-50%, 0);
+            height: 562.5px;
+            margin-top: 100px;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #clipTitle {
+            width: 100%;
+            text-align: center;
+            color: #4db1bc;
+            font-family: 'Teko', sans-serif;
+            font-size: 40px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        #targetUserProfileImage {
+            position: absolute; 
+            height: 562.5px;
+            text-align: center; 
+            z-index: 1;
+            left: 50%; 
+            top: 100px;
+            transform: translate(-50%, 0);
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #4db1bc;   
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
+        }
+    </style>
+
+</head>
+<body onload="load();">
+    <h1 id="targetUser"></h1> 
+    <img id="targetUserProfileImage" />
+    
+    <div id="videoContainer">
+        <iframe id="video"></iframe>
+        <h3 id="clipTitle"></h3>
+    </div>
+</body>
+</html>
