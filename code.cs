@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using Twitch.Common.Models.Api;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 public class CPHInline
 {
@@ -22,6 +23,8 @@ public class CPHInline
         Int16 daysOld = 60;
         bool isRandom = true;
         string shoutoutHtml = "https://justeDave.tv/shoutout/v2";
+        string defaultColor = "4db1bc";
+        string color = defaultColor;
         string targetUser;
         string targetUserId;
         string targetUserProfileImageUrl;
@@ -40,6 +43,23 @@ public class CPHInline
         {
             CPH.LogError($"JDhoutout : Missing critical informations. Unable to continue.");
             throw;
+        }
+
+        try
+        {
+            var desiredColor = args["color"].ToString();
+            if (IsValidHexColor(desiredColor))
+            {
+                color = desiredColor.Replace("#", "");
+            }
+            else
+            {
+                CPH.LogWarn($"JDhoutout : 'color' is not a valid hex color code. Default value of #{defaultColor} applied.");
+            }
+        }
+        catch
+        {
+            CPH.LogWarn($"JDhoutout : 'color' is not defined. Default value of #{defaultColor} applied.");
         }
 
         try
@@ -99,7 +119,7 @@ public class CPHInline
         int clipDuration;
         try
         {
-            var clipDurationDouble = selectedClip.Duration * 1000;
+            var clipDurationDouble = Convert.ToDouble(selectedClip.Duration) * 1000;
             clipDuration = Convert.ToInt32(clipDurationDouble);
         }
         catch
@@ -109,7 +129,7 @@ public class CPHInline
         }
 
         var clipTitle = selectedClip.Title;
-        shoutoutHtml += $"?targetUser={targetUser}&targetUserProfileImageUrl={targetUserProfileImageUrl}&clipDuration={clipDuration}&id={selectedClip.Id}&clipTitle={clipTitle}";
+        shoutoutHtml += $"?targetUser={targetUser}&targetUserProfileImageUrl={targetUserProfileImageUrl}&clipDuration={clipDuration}&id={selectedClip.Id}&clipTitle={clipTitle}&color={color}";
         CPH.SetArgument("shoutoutHtml", shoutoutHtml);
 
         int shoutoutTotalDuration = 3000 + clipDuration + 3000; // 3 seconds for the profileImage appearance + duration of the clip +  3 seconds for the appearance and fade out
@@ -122,5 +142,12 @@ public class CPHInline
         CPH.ObsSetBrowserSource(shoutoutScene, shoutoutSource, "about:blank");
 
         return true;
+    }
+
+    public bool IsValidHexColor(string input)
+    {
+        // Regex for a valid hex color (#RRGGBB or #RGB)
+        var hexColorPattern = "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$";
+        return Regex.IsMatch(input, hexColorPattern);
     }
 }
