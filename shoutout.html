@@ -9,32 +9,32 @@
             var urlParams = new URLSearchParams(window.location.search);
 
             id = urlParams.get('id');
-            clipDuration = parseInt(urlParams.get('clipDuration'), 10);
+            clipDuration = parseInt(urlParams.get('clipDuration'), 10); 
 
             var color = urlParams.get('color');
             document.getElementById('targetUser').style.color = color;
-            document.getElementById('clipTitle').style.color = color;
+            document.getElementById('clipTitle').style.color = color;     
 
             var targetUser = urlParams.get('targetUser');
-            document.getElementById('targetUser').innerHTML = targetUser;
+            document.getElementById('targetUser').innerHTML = targetUser;  
 
-            var targetUserProfileImageUrl = urlParams.get('targetUserProfileImageUrl');
+            var targetUserProfileImageUrl = urlParams.get('targetUserProfileImageUrl');    
             document.getElementById('targetUserProfileImage').src = targetUserProfileImageUrl;
-
-            var clipTitle = urlParams.get('clipTitle');
+         
+            var clipTitle = urlParams.get('clipTitle');    
             document.getElementById('clipTitle').innerHTML = clipTitle;
 
             document.getElementById('targetUser').classList.add("show");
             document.getElementById('targetUserProfileImage').classList.add("show");
-
+            
             setTimeout(showVideo, 2000);
-        }
+        }    
 
         function showVideo() {
             document.getElementById('targetUserProfileImage').classList.add("hide");
 
             var video = document.getElementById('video');
-            video.classList.add("show");
+            video.classList.add("show"); 
             document.getElementById('clipTitle').classList.add("show");
             video.src = `https://clips.twitch.tv/embed?clip=${id}&parent=justedave.tv&autoplay=true&muted=false`;
 
@@ -42,14 +42,14 @@
         }
 
         function cleanup() {
-            document.getElementById('targetUserProfileImage').classList.remove("hide");
-            document.getElementById('video').classList.add("hide");
+            document.getElementById('targetUserProfileImage').classList.remove("hide");  
+            document.getElementById('video').classList.add("hide");  
             document.getElementById('clipTitle').classList.add("hide");
-
-            setTimeout(function () {
-                document.getElementById('targetUser').classList.add("hide");
-                document.getElementById('targetUserProfileImage').classList.add("hide");
-
+            
+            setTimeout(function() {
+                document.getElementById('targetUser').classList.add("hide");   
+                document.getElementById('targetUserProfileImage').classList.add("hide");   
+                
             }, 2000);
         }
     </script>
@@ -65,11 +65,10 @@
 
         @keyframes glow {
             from {
-                text-shadow: 0 0 20px #7a7a7a;
+                text-shadow: 0 0 20px #424242;
             }
-
             to {
-                text-shadow: 0 0 30px #7a7a7a, 0 0 10px #696969;
+                text-shadow: 0 0 30px #424242, 0 0 10px #202020;
             }
         }
 
@@ -84,12 +83,12 @@
 
         .hide {
             opacity: 0;
-            transition: opacity 1s ease-in;
+            transition: opacity 1s ease-in;    
         }
 
         #targetUser {
             width: 100%;
-            position: absolute;
+            position: absolute; 
             left: 50%;
             z-index: 9999;
             transform: translate(-50%, 0%);
@@ -128,24 +127,24 @@
         }
 
         #targetUserProfileImage {
-            position: absolute;
+            position: absolute; 
             height: 400px;
-            text-align: center;
+            text-align: center; 
             z-index: 1;
-            left: 50%;
+            left: 50%; 
             margin-top: 100px;
             transform: translate(-50%, 0);
             border-radius: 50%;
-            object-fit: cover;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            object-fit: cover; 
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); 
         }
     </style>
 
 </head>
 <body onload="load();">
-    <h1 id="targetUser"></h1>
+    <h1 id="targetUser"></h1> 
     <img id="targetUserProfileImage" />
-
+    
     <div id="videoContainer">
         <iframe id="video"></iframe>
         <h3 id="clipTitle"></h3>
