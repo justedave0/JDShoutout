@@ -7,66 +7,85 @@ using System.Collections.Generic;
 using Twitch.Common.Models.Api;
 using Newtonsoft.Json.Linq;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 public class CPHInline
 {	
     private string _accessToken => CPH.TwitchOAuthToken;
     private string _clientId => CPH.TwitchClientId;
 
-    private static readonly HttpClient _httpClient = new HttpClient{Timeout = TimeSpan.FromSeconds(30)}; // Adjust the timeout as needed
+    private static readonly HttpClient _httpClient = new HttpClient{Timeout = TimeSpan.FromSeconds(30)}; 
     
     public bool Execute()
     {
     	_httpClient.DefaultRequestHeaders.Clear();
     	
-    	Int16 dateRange = 60;
+    	Int16 daysOld = 60;
     	bool isRandom = true;	
-    	string shoutoutHtml = "https://justeDave.tv/shoutout.html"; 	
+    	string shoutoutHtml = "https://justeDave.tv/shoutout/v2"; 	
+    	string defaultColor = "4db1bc";
+    	string color = defaultColor;
     	string targetUser;
     	string targetUserId;
     	string targetUserProfileImageUrl;
-
+    	string shoutoutScene;
+		string shoutoutSource;
+		
     	try{
+    		shoutoutScene = args["shoutoutScene"].ToString();
+    		shoutoutSource = args["shoutoutSource"].ToString();
     		targetUser = args["targetUser"].ToString();
     		targetUserId = args["targetUserId"].ToString();
     		targetUserProfileImageUrl = args["targetUserProfileImageUrl"].ToString();
     	}
     	catch{
-    		CPH.LogError($"Variables nécessaires introuvables. Impossible de continuer le shoutout.");
-    		return false;
+    		CPH.LogError($"JDhoutout : Missing critical informations. Unable to continue.");
+    		throw;
     	}
     	
     	try{
-    		dateRange = Int16.Parse(args["dateRange"].ToString());
+    		var desiredColor = args["color"].ToString();
+    		if (IsValidHexColor(desiredColor)){
+    			color = desiredColor.Replace("#","");
+    		}
+    		else{
+    			CPH.LogWarn($"JDhoutout : 'color' is not a valid hex color code. Default value of #{defaultColor} applied.");
+    		}
     	}
     	catch{
-    		CPH.LogWarn($"Variable 'daterange' non définie ou n'est pas un nombre. Valeur par défaut utilisée ({dateRange})");
+    		CPH.LogWarn($"JDhoutout : 'color' is not defined. Default value of #{defaultColor} applied.");
+    	}
+    	
+    	try{
+    		daysOld = Int16.Parse(args["daysOld"].ToString());
+    	}
+    	catch{
+    		CPH.LogWarn($"JDhoutout : 'daysOld' is not defined or is not a number. Default value of {daysOld} applied.");
     	}
     	
     	try{
     		isRandom = Boolean.Parse(args["isRandom"].ToString());
     	}
     	catch{
-    		CPH.LogWarn($"Variable 'isRandom' non définie ou n'est pas 'True' ou 'False'. Valeur par défaut utilisée ({isRandom})");
+    		CPH.LogWarn($"JDhoutout : 'isRandom' is not defined or is not a Boolean value. Default value of {isRandom} applied");
     	}
     	
     	try{
     		shoutoutHtml = args["shoutoutHtml"].ToString();
     	}
     	catch{
-    		CPH.LogWarn($"Variable 'shoutoutHtml' non définie. Valeur par défaut utilisée ({shoutoutHtml})");
+    		CPH.LogWarn($"JDhoutout : 'shoutoutHtml' is not defined. Default value of {shoutoutHtml} applied");
     	}
     	    	    	
-    	var startdate = DateTime.Now.AddDays(-dateRange);
+    	var startdate = DateTime.Now.AddDays(-daysOld);
     	var allClips = CPH.GetClipsForUser(targetUser, startdate, DateTime.Now);
     	
-    	// si aucun clips trouvés pour les "X" derniers jours, prendre les clips depuis toujours
     	if (allClips.Count == 0){
             allClips = CPH.GetClipsForUser(targetUser);
         }
-        // si vraiement aucun clips trouvés, arrêter ici mais le signifier :(
+
         if (allClips.Count == 0){
-            CPH.SendMessage("Je ne peux malheureusement pas trouver de clip pour ce streameur :(");
+            CPH.SendMessage("JDhoutout : No available clips are found for this streamer :(");
             return false;
         }
 
@@ -77,51 +96,40 @@ public class CPHInline
 			selectedClip = allClips[clipid];
 		}
 		else { 
-			// si pas aléatoire, ordonner la liste du plus vu au moins vu et prendre le premier
 			allClips.Sort((clip1, clip2) => clip2.ViewCount.CompareTo(clip1.ViewCount));
 			selectedClip = allClips[0];
 		}	
-					
-		var clipduration = selectedClip.Duration * 1000;
+			
+		int clipDuration;	
+		try{
+			var clipDurationDouble = Convert.ToDouble(selectedClip.Duration) * 1000;
+			clipDuration = Convert.ToInt32(clipDurationDouble);
+		}
+		catch{
+			CPH.LogError($"JDhoutout : Cannot parse {selectedClip.Duration} to Int...");
+    		throw;
+		}
+		
 		var clipTitle = selectedClip.Title;
-		shoutoutHtml += $"?targetUser={targetUser}&targetUserProfileImageUrl={targetUserProfileImageUrl}&clipduration={clipduration}&id={selectedClip.Id}&clipTitle={clipTitle}";
+		shoutoutHtml += $"?targetUser={targetUser}&targetUserProfileImageUrl={targetUserProfileImageUrl}&clipDuration={clipDuration}&id={selectedClip.Id}&clipTitle={clipTitle}&color={color}";
 		CPH.SetArgument("shoutoutHtml", shoutoutHtml);
 		
-		// 3 secondes pour l'apparition au début, clipduration pour le clip lui-même et 3 secondes pour le cleanup de fin
-		var shoutoutTotalDuration = 3000 + clipduration + 3000;
+		int shoutoutTotalDuration = 3000 + clipDuration + 3000; // 3 seconds for the profileImage appearance + duration of the clip +  3 seconds for the appearance and fade out
 		CPH.SetArgument("shoutoutTotalDuration", shoutoutTotalDuration); 
-				
+		
+		CPH.ObsSetBrowserSource(shoutoutScene, shoutoutSource, shoutoutHtml); 
+		CPH.ObsSetSourceVisibility(shoutoutScene, shoutoutSource, true);
+		CPH.Wait(shoutoutTotalDuration); 
+		CPH.ObsSetSourceVisibility(shoutoutScene, shoutoutSource, false);  
+		CPH.ObsSetBrowserSource(shoutoutScene, shoutoutSource, "about:blank"); 
+		
         return true;
-    }
+    } 
     
-    List<string> GetTopTrois(string targetUserId)
-    {
-        var url = $"https://api.twitch.tv/helix/videos?user_id={targetUserId}&type=archive";
-        var gamesPlayed = new List<string>();
-
-        using (var client = new HttpClient())
-        {
-            client.DefaultRequestHeaders.Add("Client-ID", _clientId);
-            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_accessToken}");
-
-            var response = client.GetAsync(url).Result;
-            var jsonResponse = response.Content.ReadAsStringAsync().Result;
-            var json = JObject.Parse(jsonResponse);
-            CPH.LogDebug(jsonResponse);
-            if (json["data"] != null && json["data"].HasValues)
-            {
-                foreach (var stream in json["data"])
-                {
-                    var gameName = stream["game_name"].ToString();
-                    gamesPlayed.Add(gameName);
-                }
-            }
-        }
-		var topGames = gamesPlayed.GroupBy(game => game)
-                        .OrderByDescending(g => g.Count())
-                        .Take(3)
-                        .Select(g => g.Key).ToList();   
-        return topGames;
-    }
-    
+	public bool IsValidHexColor(string input)
+	{
+		// Regex for a valid hex color (#RRGGBB or #RGB)
+		var hexColorPattern = "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$";
+		return Regex.IsMatch(input, hexColorPattern);
+	}
 }
